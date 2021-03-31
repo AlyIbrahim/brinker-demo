@@ -1,0 +1,125 @@
+apiVersion: 1.0.0
+metadata:
+  name: quarkus
+projects:
+  - name: color-counter-service
+    source:
+      location: 'https://github.com/AlyIbrahim/color-counter-service.git'
+      type: git
+      branch: main
+    clonePath: colorpad/color-counter-service
+components:
+  - id: redhat/quarkus-java11/latest
+    type: chePlugin
+  - mountSources: true
+    endpoints:
+      - name: quarkus-development-server
+        port: 8080
+      - attributes:
+          path: /count/red
+        name: count-red-endpoint
+        port: 8080
+    memoryLimit: 512Mi
+    type: dockerimage
+    volumes:
+      - name: m2
+        containerPath: /home/jboss/.m2
+    alias: maven
+    image: 'registry.redhat.io/codeready-workspaces/plugin-java11-rhel8@sha256:b7419991847d4fd1659773c9f8043cb4904f9d028405fd7c1769ca8753887f77'
+    env:
+      - value: '-XX:MaxRAMPercentage=50.0 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xms20m -Djava.security.egd=file:/dev/./urandom -Duser.home=/home/jboss'
+        name: JAVA_OPTS
+      - value: $(JAVA_OPTS)
+        name: MAVEN_OPTS
+      - value: 'cluster-kafka-bootstrap:9092'
+        name: KAFKA_BOOTSTRAP_SERVER
+      - value: 'postgresql://localhost:5432/colorpad'
+        name: QUARKUS_DATASOURCE_REACTIVE_URL
+  - command:
+      - sleep
+      - infinity
+    memoryLimit: 512Mi
+    type: dockerimage
+    alias: openshift
+    image: 'quay.io/openshift/origin-cli:latest'
+    env:
+      - value: stage1
+        name: TEST_PROJ
+      - value: 'cluster-kafka-bootstrap:9092'
+        name: KAFKA_BOOTSTRAP_SERVER
+      - value: squares
+        name: KAFKA_TOPIC
+  - memoryLimit: 512Mi
+    type: dockerimage
+    volumes:
+      - name: postgresql-data
+        containerPath: /var/lib/postgresql/
+    alias: postgresql
+    image: postgres
+    env:
+      - value: ride
+        name: POSTGRES_USER
+      - value: ride
+        name: POSTGRES_PASSWORD
+      - value: colorpad
+        name: POSTGRES_DB
+commands:
+  - name: Start Quarkus in devmode (hot deploy + debug)
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: 'mvn compile quarkus:dev -Dquarkus.http.host=0.0.0.0'
+        component: maven
+  - name: Package the application
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: mvn package -DskipTests=True
+        component: maven
+  - name: Test the application
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: mvn test
+        component: maven
+  - name: Curl count endpoint
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: 'curl -H "Content-Type: application/json" http://localhost:8080/count/ -d''{"squareId":5, "boardId":4,"color":"red"}'''
+        component: maven
+  - name: Build the application
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: mvn package -DskipTests=True
+        component: maven
+  - name: Stream Kafka Topic
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: oc exec cluster-kafka-0 -it -- bin/kafka-console-consumer.sh --bootstrap-server=$KAFKA_BOOTSTRAP_SERVER --topic $TOPIC --from-beginning
+        component: openshift
+  - name: List Services
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: oc get services
+        component: openshift
+  - name: List Pods
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
+        type: exec
+        command: oc get pods
+        component: openshift
+  - name: Connect to Postgres
+    actions:
+      - type: exec
+        command: psql -d $POSTGRES_DB -U $POSTGRES_USER
+        component: postgresql
+  - name: Create Table
+    actions:
+      - type: exec
+        command: psql \dt -d $POSTGRES_DB -U $POSTGRES_USER
+        component: postgresql
+
