@@ -1,6 +1,8 @@
 package com.aliction.colorcountservice;
 
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -25,7 +27,7 @@ public class ColorObject extends PanacheEntityBase{
             sequenceName = "squares_id_seq",
             allocationSize = 1,
             initialValue = 1)
-    // @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sq")
     @ColumnDefault("nextval('squares_id_seq'::regclass)")
     private Long id;
     private int squareId;
