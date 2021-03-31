@@ -1,6 +1,6 @@
 apiVersion: 1.0.0
 metadata:
-  name: quarkus
+  name: quarkus-counter-service
 projects:
   - name: color-counter-service
     source:
@@ -96,20 +96,17 @@ commands:
         component: maven
   - name: Stream Kafka Topic
     actions:
-      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
-        type: exec
+      - type: exec
         command: oc exec cluster-kafka-0 -it -- bin/kafka-console-consumer.sh --bootstrap-server=$KAFKA_BOOTSTRAP_SERVER --topic $TOPIC --from-beginning
         component: openshift
   - name: List Services
     actions:
-      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
-        type: exec
+      - type: exec
         command: oc get services
         component: openshift
   - name: List Pods
     actions:
-      - workdir: '${CHE_PROJECTS_ROOT}/colorpad/color-counter-service'
-        type: exec
+      - type: exec
         command: oc get pods
         component: openshift
   - name: Connect to Postgres
