@@ -11,9 +11,6 @@ projects:
 components:
   - id: redhat/quarkus-java11/latest
     type: chePlugin
-  - type: openshift
-    reference: https://raw.githubusercontent.com/AlyIbrahim/color-counter-service/main/kafka-cluster.yml
-    alias: kafka
   - mountSources: true
     endpoints:
       - name: quarkus-development-server
